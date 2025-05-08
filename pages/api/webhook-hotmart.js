@@ -3,7 +3,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const payload = req.body;
+  // ADICIONAR ESTA LINHA PARA PARSE DO JSON:
+  const payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
   console.log('Received webhook:', payload);
 
   const email = payload?.buyer?.email;
