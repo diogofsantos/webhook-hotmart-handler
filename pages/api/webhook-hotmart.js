@@ -1,9 +1,12 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  // Validação do token do header
   const token = req.headers['x-hotmart-hottok'];
   if (token !== process.env.HOTMART_TOKEN) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -14,8 +17,9 @@ export default async function handler(req, res) {
 
   const email = payload.data?.buyer?.email;
   const name = payload.data?.buyer?.name;
-  const purchaseStatus = payload.data?.purchase?.status; // <-- ALTERADO
-  const event = payload.event; // <-- novo campo para identificar o evento
+  const purchaseStatus = payload.data?.purchase?.status;
+  const event = payload.event;
+  const plan = payload.data?.subscription?.plan?.name || 'Padrão'; // pegando plano ou valor padrão
 
   if (!email || !name) {
     return res.status(400).json({ message: 'Email or name not found' });
@@ -23,7 +27,6 @@ export default async function handler(req, res) {
 
   let newStatus = 'Aguardando';
 
-  // Mapear pelo status ou evento
   if (purchaseStatus === 'APPROVED' || event === 'PURCHASE_APPROVED') {
     newStatus = 'Comprou';
   } else if (purchaseStatus === 'BILLET_PRINTED') {
@@ -32,9 +35,25 @@ export default async function handler(req, res) {
     newStatus = 'Abandonou Checkout';
   }
 
+  // 🔥 Atualizar status (e opcionalmente plan) no Supabase
+  const { data, error } = await supabase
+    .from('leads')
+    .update({ status: newStatus, plan: plan })
+    .eq('email', email);
+
+  if (error) {
+    console.error('❌ Erro ao atualizar Supabase:', error);
+    return res.status(500).json({ message: 'Erro ao atualizar status no Supabase' });
+  }
+
+  if (data.length === 0) {
+    console.warn('⚠️ Nenhum registro encontrado para este email:', email);
+  }
+
   return res.status(200).json({
-    message: `Status updated: ${newStatus}`,
-    name: name,
-    email: email
+    message: `Status atualizado para: ${newStatus}`,
+    name,
+    email,
+    plan
   });
 }
