@@ -1,8 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+let supabase;
 
 export default async function handler(req, res) {
+  if (!supabase) {
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  }
+
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
   const { data, error } = await supabase
@@ -17,6 +20,5 @@ export default async function handler(req, res) {
   }
 
   console.log('✅ Abandonos temporários atualizados:', data);
-
   return res.status(200).json({ message: 'Abandonos temporários atualizados', updated: data });
 }
