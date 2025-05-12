@@ -76,6 +76,28 @@ export default async function handler(req, res) {
         return res.status(500).json({ message: 'Erro ao inserir novo lead no Supabase' });
       }
 
+      // Caso não encontre o lead no banco, mostrar um alerta
+      if (!newLead || newLead.length === 0) {
+        console.warn('⚠️ Nenhum registro encontrado para este email:', email);
+      }
+
+      // Enviar evento para o GTM Server-Side (Facebook CAPI)
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gtm-server`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event,
+            email,
+            name,
+            plan,
+            status: newStatus,
+          }),
+        });
+      } catch (err) {
+        console.error('Erro ao enviar evento para GTM Server-Side:', err);
+      }
+
       return res.status(200).json({
         message: `Novo lead inserido e status atualizado para: ${newStatus}`,
         name,
@@ -95,6 +117,23 @@ export default async function handler(req, res) {
     if (updateError) {
       console.error('❌ Erro ao atualizar status no Supabase:', updateError.message);
       return res.status(500).json({ message: 'Erro ao atualizar status no Supabase' });
+    }
+
+    // Enviar evento para o GTM Server-Side (Facebook CAPI)
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gtm-server`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event,
+          email,
+          name,
+          plan,
+          status: newStatus,
+        }),
+      });
+    } catch (err) {
+      console.error('Erro ao enviar evento para GTM Server-Side:', err);
     }
 
     return res.status(200).json({
