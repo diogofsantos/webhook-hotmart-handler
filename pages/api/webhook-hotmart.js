@@ -50,25 +50,55 @@ export default async function handler(req, res) {
     newStatus = 'Abandonou Checkout';
   }
 
-  // Atualizando o status do lead no Supabase
   try {
-    const { data, error } = await supabase
+    // Verifica se o lead já existe no banco de dados
+    const { data: leadData, error: selectError } = await supabase
       .from('leads')
-      .update({ status: newStatus, plan: plan })
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('❌ Erro ao buscar o lead:', selectError.message);
+      return res.status(500).json({ message: 'Erro ao buscar o lead no Supabase' });
+    }
+
+    // Se o lead não existir, insere um novo registro
+    if (!leadData) {
+      console.log('⚠️ Lead não encontrado. Inserindo novo lead.');
+
+      const { data: newLead, error: insertError } = await supabase
+        .from('leads')
+        .insert([{ email, name, status: newStatus, plan }]);
+
+      if (insertError) {
+        console.error('❌ Erro ao inserir o novo lead:', insertError.message);
+        return res.status(500).json({ message: 'Erro ao inserir novo lead no Supabase' });
+      }
+
+      return res.status(200).json({
+        message: `Novo lead inserido e status atualizado para: ${newStatus}`,
+        name,
+        email,
+        plan,
+      });
+    }
+
+    // Se o lead já existir, atualiza apenas as informações diferentes
+    console.log('✅ Lead encontrado, atualizando status e plano.');
+
+    const { data: updateData, error: updateError } = await supabase
+      .from('leads')
+      .update({ status: newStatus, plan })
       .eq('email', email);
 
-    if (error) {
-      console.error('❌ Erro ao atualizar status no Supabase:', error);
+    if (updateError) {
+      console.error('❌ Erro ao atualizar status no Supabase:', updateError.message);
       return res.status(500).json({ message: 'Erro ao atualizar status no Supabase' });
     }
 
-    // Caso não encontre o lead no banco, mostrar um alerta
-    if (!data || data.length === 0) {
-      console.warn('⚠️ Nenhum registro encontrado para este email:', email);
-    }
-
     return res.status(200).json({
-      message: `Status atualizado para: ${newStatus}`,
+      message: `Status do lead atualizado para: ${newStatus}`,
       name,
       email,
       plan,
