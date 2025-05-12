@@ -83,16 +83,17 @@ export default async function handler(req, res) {
 
       // Enviar evento para o GTM Server-Side (Facebook CAPI)
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gtm-server`, {
+        const payload = {
+          event,
+          email,
+          name,
+          plan,
+          status: newStatus,
+        };
+        await fetch('https://gtm.newauralife.com/collect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event,
-            email,
-            name,
-            plan,
-            status: newStatus,
-          }),
+          body: JSON.stringify(payload),
         });
       } catch (err) {
         console.error('Erro ao enviar evento para GTM Server-Side:', err);
@@ -121,16 +122,17 @@ export default async function handler(req, res) {
 
     // Enviar evento para o GTM Server-Side (Facebook CAPI)
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/gtm-server`, {
+      const payload = {
+        event,
+        email,
+        name,
+        plan,
+        status: newStatus,
+      };
+      await fetch('https://gtm.newauralife.com/collect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event,
-          email,
-          name,
-          plan,
-          status: newStatus,
-        }),
+        body: JSON.stringify(payload),
       });
     } catch (err) {
       console.error('Erro ao enviar evento para GTM Server-Side:', err);
