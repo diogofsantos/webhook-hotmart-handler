@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     }
 
     // Caso não encontre o lead no banco, mostrar um alerta
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
       console.warn('⚠️ Nenhum registro encontrado para este email:', email);
     }
 
